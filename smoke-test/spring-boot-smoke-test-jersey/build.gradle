@@ -20,6 +20,10 @@ plugins {
 
 description = "Spring Boot Jersey smoke test"
 
+configurations {
+	jackson3
+}
+
 dependencies {
 	implementation(project(":starter:spring-boot-starter-actuator"))
 	implementation(project(":starter:spring-boot-starter-jersey"))
@@ -27,6 +31,28 @@ dependencies {
 
 	runtimeOnly("jakarta.xml.bind:jakarta.xml.bind-api")
 
+	jackson3(enforcedPlatform(project(":platform:spring-boot-dependencies")))
+	jackson3(project(":starter:spring-boot-starter-jackson"))
+	jackson3("org.glassfish.jersey.media:jersey-media-json-jackson3")
+
 	testImplementation(project(":starter:spring-boot-starter-jersey-test"))
 	testImplementation(project(":module:spring-boot-restclient"))
+}
+
+// Keep the default tests on the starter's Jackson 2-only classpath.
+tasks.named("test") {
+	exclude "**/JerseyJackson3ApplicationTests.class"
+}
+
+tasks.register("jackson3Test", Test) {
+	description = "Runs Jersey smoke tests with Jackson 3 explicitly added"
+	group = "verification"
+	testClassesDirs = sourceSets.test.output.classesDirs
+	classpath = sourceSets.test.runtimeClasspath + configurations.jackson3
+	include "**/JerseyJackson3ApplicationTests.class"
+	shouldRunAfter tasks.named("test")
+}
+
+tasks.named("check") {
+	dependsOn tasks.named("jackson3Test")
 }
